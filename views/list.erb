@@ -1,0 +1,41 @@
+<section id="todos" class="<%= list_class(@list) %>">
+  <header>
+    <h2><%= @list[:name] %></h2>
+    <ul>
+      <li>
+        <form action="/lists/<%= @list_id %>/complete" method="post">
+          <button class="check" type="submit">Complete All</button>
+        </form>
+      </li>
+      <li>
+        <a class="edit" href="/lists/<%= @list_id %>/edit">Edit List</a>
+      </li>
+    </ul>
+  </header>
+
+  <ul id="todos">
+    <% sort_todos(@list[:todos]) do |todo| %>
+      <% if todo[:completed] %>
+        <li class="complete">
+      <% else %>
+        <li>
+      <% end %>
+          <form action="/lists/<%= @list_id %>/todos/<%= todo[:id] %>" method="post" class="check">
+            <input type="hidden" name="completed" value="<%= !todo[:completed] %>"/>
+            <button type="submit">Complete</button>
+          </form>
+
+          <h3><%= todo[:name] %></h3>
+          <form class="delete" action="/lists/<%= @list_id %>/todos/<%= todo[:id] %>/delete" method="post">
+            <button type="submit">Delete</button>
+          </form>
+        </li>
+    <% end %>
+  </ul>
+</section>
+
+<%== yield %>
+
+<% content_for :header_links do %>
+  <a class="list" href="/lists">All Lists</a>
+<% end %>
