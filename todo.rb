@@ -20,19 +20,9 @@ after do
 end
 
 helpers do
-  ## count total number of todos in a list
-  def total_todos(list)
-    list[:todos].size
-  end
-
-  ## count total number of uncompleted todos in a list
-  def total_remaining_todos(list)
-    list[:todos].select { |todo| !todo[:completed] }.size
-  end
-
   ## checks if all todos in the list are completed
   def list_complete?(list)
-    !list[:todos].empty? && total_remaining_todos(list).zero?
+    list[:todos_count] > 0 && list[:todos_remaining_count] == 0
   end
 
   ## class styling for todo lists
@@ -117,6 +107,7 @@ end
 get "/lists/:list_id" do
   @list_id = params[:list_id].to_i
   @list = load_list(@list_id)
+  @todos = @storage.find_todos_for_list(@list_id)
 
   erb :list, layout: :layout do
     erb :new_todo

@@ -11,26 +11,32 @@ class DatabasePersistence
   end
 
   def find_list(list_id)
-    sql = "SELECT * FROM lists WHERE id = $1;"
+    sql = <<~SQL
+      SELECT lists.*,
+        count(todos.id) AS todos_count,
+        count(nullif(todos.completed, true)) AS todos_remaining_count
+        FROM lists
+        LEFT JOIN todos ON todos.list_id = lists.id
+        WHERE lists.id = $1
+        GROUP BY lists.id
+        ORDER BY lists.name;
+    SQL
     lists_result = query(sql, list_id)
-
-    list_tuple = lists_result.first
-    list_id = list_tuple["id"].to_i
-    todos = find_todos_for_list(list_id)
-
-    { id: list_id, name: list_tuple["name"], todos: todos }
+    tuple_to_list_hash(lists_result.first)
   end
 
   def all_lists
-    sql = "SELECT * FROM lists;"
+    sql = <<~SQL
+      SELECT lists.*,
+        count(todos.id) AS todos_count,
+        count(nullif(todos.completed, true)) AS todos_remaining_count
+        FROM lists
+        LEFT JOIN todos ON todos.list_id = lists.id
+        GROUP BY lists.id
+        ORDER BY lists.name;
+    SQL
     lists_result = query(sql)
-
-    lists_result.map do |list_tuple|
-      list_id = list_tuple["id"].to_i
-      todos = find_todos_for_list(list_id)
-
-      { id: list_id, name: list_tuple["name"], todos: todos }
-    end
+    lists_result.map { |list_tuple| tuple_to_list_hash(list_tuple) }
   end
 
   def create_new_list(list_name)
@@ -72,13 +78,6 @@ class DatabasePersistence
     @db.close
   end
 
-  private
-
-  def query(statement, *params)
-    @logger.info "#{statement}: #{params}"
-    @db.exec_params(statement, params)
-  end
-
   def find_todos_for_list(list_id)
     sql = "SELECT * FROM todos WHERE list_id = $1;"
     todos_result = query(sql, list_id)
@@ -88,5 +87,19 @@ class DatabasePersistence
         name: todo_tuple["name"],
         completed: todo_tuple["completed"] == "t" }
     end
+  end
+
+  private
+
+  def query(statement, *params)
+    @logger.info "#{statement}: #{params}"
+    @db.exec_params(statement, params)
+  end
+
+  def tuple_to_list_hash(list_tuple)
+    { id: list_tuple["id"].to_i,
+      name: list_tuple["name"],
+      todos_count: list_tuple["todos_count"].to_i,
+      todos_remaining_count: list_tuple["todos_remaining_count"].to_i }
   end
 end
