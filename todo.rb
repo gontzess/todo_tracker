@@ -15,6 +15,10 @@ configure(:development) do
   also_reload "database_persistence.rb"
 end
 
+after do
+  @storage.disconnect
+end
+
 helpers do
   ## count total number of todos in a list
   def total_todos(list)
